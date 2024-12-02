@@ -1,7 +1,6 @@
 import asyncio
 import json
 import hashlib
-import argparse
 from datetime import datetime
 
 """
@@ -24,25 +23,175 @@ from datetime import datetime
 
 class PeerNode:
     # 初始化函数
-    def __init__(self, peer_id, ip, port, total_peers, active_nodes):
+    def __init__(self, peer_id, ip, port, total_peers, active_nodes, replication_factor=2):
         self.peer_id = peer_id  # 节点的二进制标识符
         self.ip = ip  # 节点的 IP 地址
         self.port = port  # 节点的端口号
         self.total_peers = total_peers  # 总节点数
+        self.replication_factor = replication_factor  # 主题的副本数量
         self.active_nodes = active_nodes  # 活跃节点列表
         self.neighbors = self.compute_neighbors()  # 动态计算邻居节点
         self.topics = {}  # 存储当前节点负责的主题
+        self.replicas = {}
+        self.version_vectors = {}
         self.subscribers = {}  # 存储主题的订阅者
         self.log = []  # 节点的事件日志
+        # self.active_peers = {self.peer_id: (self.ip, self.port)}
+        # self.failed_peers = set()  # 存储失败的节点
+
+        # Locks for concurrency control
+        self.peer_lock = asyncio.Lock()
+        self.topic_lock = asyncio.Lock()
+        self.version_vector_lock = asyncio.Lock()
+
         self.log_event(f"Peer {self.peer_id} initialized at {self.ip}:{self.port}")
 
-    # 记录节点事件日志
+    # -------------------------------
+    # Logging
+    # -------------------------------
     def log_event(self, event):
         timestamp = datetime.now().isoformat()
         log_entry = f"[{timestamp}] {event}"
         self.log.append(log_entry)
         print(log_entry)  
 
+    # -------------------------------
+    # Network Topology & Communication
+    # -------------------------------
+    def compute_neighbors(self, peers):
+        # # Generate neighbors by flipping each bit of the peer ID to create the hypercube topology.
+        # neighbors = []
+        # for i in range(len(self.peer_id)):
+        #     neighbor = list(self.peer_id)
+        #     neighbor[i] = "1" if neighbor[i] == "0" else "0"  # Flip the i-th bit
+        #     neighbors.append("".join(neighbor))
+        # return neighbors
+        """Set up the neighbors for this peer based on hypercube logic."""
+        neighbors = []
+        # Hypercube logic: Each peer connects to others by flipping one bit at a time in the binary representation of the peer id
+        for peer in peers:
+            if peer.peer_id != self.peer_id and self.is_neighbor(peer.peer_id):
+                neighbors.append(peer)
+        self.neighbors = neighbors
+        return neighbors
+        
+    def is_neighbor(self, other_peer_id):
+        """Logic to determine if another peer is a neighbor in a hypercube."""
+        # Check if the two peer ids differ by exactly one bit
+        # In a binary string representation, two nodes are neighbors if they differ by exactly one bit
+        differing_bits = sum(1 for a, b in zip(self.peer_id, other_peer_id) if a != b)
+        return differing_bits == 1
+
+    def get_peer_address(self, peer_id):
+        # Placeholder: Define how to resolve a peer_id to IP:Port
+        return f"127.0.0.1:{6000 + int(peer_id, 2)}"
+
+    @classmethod
+    def initialize_hypercube_topology(cls, num_peers):
+        """Initialize a full hypercube topology with the specified number of peers."""
+        peers = []
+        for i in range(num_peers):
+            peer_id = f"{i:04x}"
+            peer = cls(peer_id, "127.0.0.1", 6000 + i, num_peers)
+            peers.append(peer)
+
+        # Set up neighbors for each peer based on hypercube topology
+        for peer in peers:
+            peer.compute_neighbors(peers)
+
+        return peers
+
+    async def heartbeat(self):
+        """Send heartbeat messages to detect failures."""
+        while True:
+            for peer_id, (peer_ip, peer_port) in self.active_peers.items():
+                if peer_id == self.peer_id or peer_id in self.failed_peers:
+                    continue
+                try:
+                    reader, writer = await asyncio.open_connection(peer_ip, peer_port)
+                    writer.write(b"HEARTBEAT\n")
+                    await writer.drain()
+                    writer.close()
+                    await writer.wait_closed()
+                except Exception:
+                    self.log_event(f"Detected failure of peer {peer_id}")
+                    self.failed_peers.add(peer_id)
+                    await self.handle_peer_failure(peer_id)
+            await asyncio.sleep(5)  # Send heartbeat every 5 seconds
+
+    async def handle_peer_failure(self, failed_peer_id):
+        """Reassign topics from the failed peer to active replicas."""
+        for topic, replicas in list(self.replicas.items()):
+            if failed_peer_id in replicas:
+                replicas.remove(failed_peer_id)
+                if len(replicas) < self.replication_factor:
+                    await self.reassign_topic(topic)
+
+        self.log_event(f"Reassigned topics from failed peer {failed_peer_id}")
+
+    async def announce_new_node(self, new_peer_id, ip, port):
+        """Handle a new node joining the network."""
+        self.active_peers[new_peer_id] = (ip, port)
+        self.log_event(f"New peer {new_peer_id} joined the network at {ip}:{port}")
+        await self.rebalance_topics(new_peer_id)
+
+    async def route_request(self, target_peer_id, payload):
+        if target_peer_id in self.failed_peers:
+            self.log_event(
+                f"Peer {target_peer_id} is marked as failed. Rerouting to a replica."
+            )
+            for replica_peer_id in self.replicas.get(payload.get("topic_name"), []):
+                if replica_peer_id not in self.failed_peers:
+                    target_peer_id = replica_peer_id
+                    break
+
+        next_hop = self.find_next_hop(target_peer_id)
+        if next_hop:
+            target_address = self.get_peer_address(next_hop)
+            await self.send_message(target_address, payload)
+        self.log_event(
+            f"Routing request to peer {target_peer_id} with payload: {payload}"
+        )
+        if self.peer_id == target_peer_id:
+            await self.handle_command(payload)  # Handle locally
+        else:
+            target_address = self.get_peer_address(next_hop)
+            await self.send_message(target_address, payload)
+
+    def find_next_hop(self, target_peer_id):
+        """
+        Find the next neighbor in the hypercube that is one bit closer to the target.
+        """
+        for i in range(len(self.peer_id)):
+            if self.peer_id[i] != target_peer_id[i]:  # Find the first differing bit
+                next_hop = list(self.peer_id)
+                next_hop[i] = target_peer_id[i]  # Flip the bit to move closer
+                self.log_event(
+                    f"Determining next hop: peer {self.peer_id} -> {''.join(next_hop)}"
+                )
+                return "".join(next_hop)
+
+    async def forward_message(self, neighbor_id, topic_name, message):
+        target_peer = self.get_peer_address(neighbor_id)
+        payload = {
+            "command": "forward_message",
+            "topic_name": topic_name,
+            "message": message,
+        }
+        await self.send_message(target_peer, payload)
+
+    async def run_peer(self):
+        """Start the peer, heartbeat, and handle node joins/failures. and synchronization loop."""
+        server = await asyncio.start_server(self.handle_client, self.ip, self.port)
+        self.log_event(f"Peer {self.peer_id} started at {self.ip}:{self.port}")
+        asyncio.create_task(self.run_sync_loop())
+        asyncio.create_task(self.heartbeat())
+        async with server:
+            await server.serve_forever()
+
+    # -------------------------------
+    # Topic Management
+    # -------------------------------
     def hash_function(self, topic):
         """
         Compute the peer node responsible for a given topic using the DHT.
@@ -130,12 +279,16 @@ class PeerNode:
     # 创建主题
     # 如果当前节点是目标节点，则直接创建主题；否则，转发请求到目标节点
     async def create_topic(self, topic_name):
+        """Create a new topic and place replicas."""
         responsible_peer = self.hash_function(topic_name)
         if responsible_peer == self.peer_id:
             if topic_name not in self.topics:
                 self.topics[topic_name] = []  # 创建主题消息列表
                 self.subscribers[topic_name] = []  # 初始化订阅者列表
+                self.replicas[topic_name] = []  # Initialize empty replica list
                 self.log_event(f"Created topic: {topic_name} on peer {self.peer_id}")
+                
+                await self.create_replicas(topic_name)
             else:
                 self.log_event(f"Attempted to create existing topic: {topic_name}")
         else:
@@ -167,12 +320,19 @@ class PeerNode:
     # 如果主题存在，存储消息并将其传播给订阅者；
     # 如果当前节点不是目标节点，则转发请求。
     async def publish_message(self, topic_name, message):
+        """Publish a message to the topic and update version vector."""
         responsible_peer = self.hash_function(topic_name)
+        timestamp = datetime.now().timestamp()
+        
         if responsible_peer == self.peer_id:
             if topic_name in self.topics:
-                self.topics[topic_name].append(message)
-                self.log_event(f"Published message to topic: {topic_name} on peer {self.peer_id}")
+                version_vector = self.version_vectors.setdefault(topic_name, {})
+                version_vector[self.peer_id] = timestamp
+                self.topics[topic_name].append(message, version_vector.copy())
+                
+                self.log_event(f"Published message {message} to topic: {topic_name} on peer {self.peer_id}")
                 await self.propagate_message(topic_name, message)
+                await self.replicate_to_replicas(topic_name, message, version_vector)
             else:
                 self.log_event(f"Attempted to publish to non-existent topic: {topic_name}")
         else: 
@@ -201,6 +361,8 @@ class PeerNode:
                 'command': 'subscribe_to_topic',
                 'topic_name': topic_name
             })
+            
+    
 
 
     # ----------------------【消息的传递与转发】----------------------
@@ -242,18 +404,28 @@ class PeerNode:
     #         await self.send_message(target_address, payload)
 
     async def route_request(self, target_peer_id, payload):
-        self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
+        if target_peer_id in self.failed_peers:
+            self.log_event(
+                f"Peer {target_peer_id} is marked as failed. Rerouting to a replica."
+            )
+            for replica_peer_id in self.replicas.get(payload.get("topic_name"), []):
+                if replica_peer_id not in self.failed_peers:
+                    target_peer_id = replica_peer_id
+                    break
+
+        next_hop = self.find_next_hop(target_peer_id)
+        if next_hop:
+            target_address = self.get_peer_address(next_hop)
+            await self.send_message(target_address, payload)
+        self.log_event(
+            f"Routing request to peer {target_peer_id} with payload: {payload}"
+        )
         if self.peer_id == target_peer_id:
-            await self.handle_command(payload)  # 处理请求本地命令
+            await self.handle_command(payload)  # Handle locally
         else:
             next_hop = self.find_next_hop(target_peer_id)
-            if next_hop not in self.active_nodes:
-                self.log_event(f"Next hop {next_hop} is not active. Request could not be forwarded.")
-                return {"status": "failed", "reason": "Next hop not active"}
-
             target_address = self.get_peer_address(next_hop)
-            response = await self.send_message(target_address, payload)
-            return response  # 返回最终的处理结果
+            await self.send_message(target_address, payload)
 
     # 找到距离目标节点更近的下一个邻居节点
     def find_next_hop(self, target_peer_id):
@@ -291,6 +463,7 @@ class PeerNode:
     # ----------------------【网络通信】----------------------
     # 使用异步I/O发送消息到指定的目标节点
     async def send_message(self, target_peer, message):
+        """Generic function to send messages to other peers."""
         ip, port = target_peer.split(":")
         port = int(port)
         try:
