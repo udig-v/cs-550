@@ -1,0 +1,319 @@
+Logs/Results after running test_apis.py:
+
+C:\Users\Gsj\PycharmProjects\cs550_final_project\venv\Scripts\python.exe C:/Users/Gsj/PycharmProjects/cs550_final_project/test_apis.py
+[2024-12-01T23:41:50.209331] Peer 000 initialized at 127.0.0.1:6000
+[2024-12-01T23:41:50.209331] Peer 001 initialized at 127.0.0.1:6001
+[2024-12-01T23:41:50.209331] Peer 010 initialized at 127.0.0.1:6002
+[2024-12-01T23:41:50.209331] Peer 011 initialized at 127.0.0.1:6003
+[2024-12-01T23:41:50.209331] Peer 100 initialized at 127.0.0.1:6004
+[2024-12-01T23:41:50.209331] Peer 101 initialized at 127.0.0.1:6005
+[2024-12-01T23:41:50.209331] Peer 110 initialized at 127.0.0.1:6006
+[2024-12-01T23:41:50.209331] Peer 111 initialized at 127.0.0.1:6007
+Step 1: Creating topic on Peer 0
+[2024-12-01T23:41:50.210328] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.210328] Routing request to peer 011 with payload: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.210328] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.211326] Peer 000 started at 127.0.0.1:6000
+[2024-12-01T23:41:50.211326] Peer 001 started at 127.0.0.1:6001
+[2024-12-01T23:41:50.211326] Peer 010 started at 127.0.0.1:6002
+[2024-12-01T23:41:50.211326] Peer 011 started at 127.0.0.1:6003
+[2024-12-01T23:41:50.211326] Peer 100 started at 127.0.0.1:6004
+[2024-12-01T23:41:50.211326] Peer 101 started at 127.0.0.1:6005
+[2024-12-01T23:41:50.211326] Peer 110 started at 127.0.0.1:6006
+[2024-12-01T23:41:50.211326] Peer 111 started at 127.0.0.1:6007
+[2024-12-01T23:41:50.713872] Received client request: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.713872] Processing command: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.713872] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.713872] Routing request to peer 011 with payload: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.713872] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.714867] Received client request: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.714867] Processing command: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.714867] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.714867] Created topic: TestTopic on peer 011
+[2024-12-01T23:41:50.715757] Sent message to 127.0.0.1:6003: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.715757] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.715757] Sent message to 127.0.0.1:6002: {'command': 'create_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.715757] Received response from 127.0.0.1:6002: {"status": "success"}
+Topic created by Peer 0
+Step 2: Multiple peers subscribing to the topic
+[2024-12-01T23:41:50.715757] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.715757] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.715757] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.715757] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.716758] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.716758] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.716758] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.716758] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.716758] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.716758] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.716758] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.717790] Sent message to 127.0.0.1:6002: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.717790] Received response from 127.0.0.1:6002: {"status": "success"}
+Peer 000 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.717790] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.717790] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.717790] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.717790] Determining next hop: peer 001 -> 011
+[2024-12-01T23:41:50.717790] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.717790] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.717790] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.717790] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.717790] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.717790] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 001 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.728059] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.728059] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.728059] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.728059] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.729061] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.729061] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.730094] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.730094] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 010 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.730094] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.730094] Subscribed to topic: TestTopic on peer 011
+Peer 011 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.730094] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.730094] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.730094] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Determining next hop: peer 100 -> 000
+[2024-12-01T23:41:50.730094] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.730094] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.730094] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.730094] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.731090] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.731090] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.731090] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.731090] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.731090] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.731090] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.732085] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.732085] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.732085] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.732085] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.732085] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.732085] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.732085] Sent message to 127.0.0.1:6002: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.732085] Received response from 127.0.0.1:6002: {"status": "success"}
+[2024-12-01T23:41:50.732085] Sent message to 127.0.0.1:6000: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.732085] Received response from 127.0.0.1:6000: {"status": "success"}
+Peer 100 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.732085] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.732085] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.732085] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.743634] Determining next hop: peer 101 -> 001
+[2024-12-01T23:41:50.744633] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.744633] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.744633] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Determining next hop: peer 001 -> 011
+[2024-12-01T23:41:50.744633] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.744633] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.744633] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.744633] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.745651] Sent message to 127.0.0.1:6001: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.745651] Received response from 127.0.0.1:6001: {"status": "success"}
+Peer 101 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.745651] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.745651] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.745651] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.745651] Determining next hop: peer 110 -> 010
+[2024-12-01T23:41:50.745651] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.745651] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.745651] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.745651] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.745651] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.745651] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.746662] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.746662] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.746662] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.746662] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.746662] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.746662] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.746662] Sent message to 127.0.0.1:6002: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.746662] Received response from 127.0.0.1:6002: {"status": "success"}
+Peer 110 subscribed to 'TestTopic'
+[2024-12-01T23:41:50.746662] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.746662] Routing subscribe request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.746662] Routing request to peer 011 with payload: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.746662] Determining next hop: peer 111 -> 011
+[2024-12-01T23:41:50.747661] Received client request: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.747661] Processing command: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.747661] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.747661] Subscribed to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.747661] Sent message to 127.0.0.1:6003: {'command': 'subscribe_to_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.759622] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 111 subscribed to 'TestTopic'
+Step 3: Multiple peers publishing to the topic
+[2024-12-01T23:41:50.759622] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.759622] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.759622] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.759622] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.760402] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.760402] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.760402] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.760402] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.760402] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.760402] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.761399] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.761399] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.761399] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.761399] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.761399] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.761399] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.761399] Sent message to 127.0.0.1:6002: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 000'}
+[2024-12-01T23:41:50.761399] Received response from 127.0.0.1:6002: {"status": "success"}
+Peer 000 published message to 'TestTopic'
+[2024-12-01T23:41:50.761399] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.761399] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.761399] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 001'}
+[2024-12-01T23:41:50.761399] Determining next hop: peer 001 -> 011
+[2024-12-01T23:41:50.762396] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 001'}
+[2024-12-01T23:41:50.762396] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 001'}
+[2024-12-01T23:41:50.762396] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.762396] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.762396] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 001'}
+[2024-12-01T23:41:50.762396] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 001 published message to 'TestTopic'
+[2024-12-01T23:41:50.762396] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.762396] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.762396] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 010'}
+[2024-12-01T23:41:50.762396] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.763393] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 010'}
+[2024-12-01T23:41:50.763393] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 010'}
+[2024-12-01T23:41:50.763393] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.775649] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.775649] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 010'}
+[2024-12-01T23:41:50.775649] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 010 published message to 'TestTopic'
+[2024-12-01T23:41:50.775649] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.775649] Published message to topic: TestTopic on peer 011
+Peer 011 published message to 'TestTopic'
+[2024-12-01T23:41:50.775649] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.775649] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.775649] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.775649] Determining next hop: peer 100 -> 000
+[2024-12-01T23:41:50.776469] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.776469] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.776469] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.776469] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.776469] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.776469] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.777467] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.777467] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.777467] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.777467] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.777467] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.777467] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.777467] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.777467] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.777467] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.777467] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.778466] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.778466] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.778466] Sent message to 127.0.0.1:6002: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.778466] Received response from 127.0.0.1:6002: {"status": "success"}
+[2024-12-01T23:41:50.778466] Sent message to 127.0.0.1:6000: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 100'}
+[2024-12-01T23:41:50.778466] Received response from 127.0.0.1:6000: {"status": "success"}
+Peer 100 published message to 'TestTopic'
+[2024-12-01T23:41:50.778466] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.778466] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.778466] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.778466] Determining next hop: peer 101 -> 001
+[2024-12-01T23:41:50.779461] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.790839] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.790839] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.790839] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.790839] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.790839] Determining next hop: peer 001 -> 011
+[2024-12-01T23:41:50.791840] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.791840] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.791840] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.791840] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.791840] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.791840] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.791840] Sent message to 127.0.0.1:6001: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 101'}
+[2024-12-01T23:41:50.791840] Received response from 127.0.0.1:6001: {"status": "success"}
+Peer 101 published message to 'TestTopic'
+[2024-12-01T23:41:50.791840] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.791840] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.791840] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.791840] Determining next hop: peer 110 -> 010
+[2024-12-01T23:41:50.792837] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.792837] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.792837] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.792837] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.792837] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.792837] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.793834] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.793834] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.793834] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.793834] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.793834] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.793834] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.793834] Sent message to 127.0.0.1:6002: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 110'}
+[2024-12-01T23:41:50.793834] Received response from 127.0.0.1:6002: {"status": "success"}
+Peer 110 published message to 'TestTopic'
+[2024-12-01T23:41:50.793834] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.793834] Routing publish request for topic 'TestTopic' to peer 011
+[2024-12-01T23:41:50.793834] Routing request to peer 011 with payload: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 111'}
+[2024-12-01T23:41:50.793834] Determining next hop: peer 111 -> 011
+[2024-12-01T23:41:50.794832] Received client request: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 111'}
+[2024-12-01T23:41:50.806934] Processing command: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 111'}
+[2024-12-01T23:41:50.806934] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.806934] Published message to topic: TestTopic on peer 011
+[2024-12-01T23:41:50.806934] Sent message to 127.0.0.1:6003: {'command': 'publish_message', 'topic_name': 'TestTopic', 'message': 'Message from Peer 111'}
+[2024-12-01T23:41:50.806934] Received response from 127.0.0.1:6003: {"status": "success"}
+Peer 111 published message to 'TestTopic'
+Step 4: Peers retrieving messages from the topic
+Messages received by Peer 000: []
+Messages received by Peer 001: []
+Messages received by Peer 010: []
+Messages received by Peer 011: ['Message from Peer 000', 'Message from Peer 001', 'Message from Peer 010', 'Message from Peer 011', 'Message from Peer 100', 'Message from Peer 101', 'Message from Peer 110', 'Message from Peer 111']
+Messages received by Peer 100: []
+Messages received by Peer 101: []
+Messages received by Peer 110: []
+Messages received by Peer 111: []
+Step 5: Deleting topic from Peer 0
+[2024-12-01T23:41:50.806934] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.806934] Routing request to peer 011 with payload: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.806934] Determining next hop: peer 000 -> 010
+[2024-12-01T23:41:50.807932] Received client request: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.807932] Processing command: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.807932] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.807932] Routing request to peer 011 with payload: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.807932] Determining next hop: peer 010 -> 011
+[2024-12-01T23:41:50.808929] Received client request: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.808929] Processing command: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.808929] Computed hash for topic 'TestTopic' -> responsible peer 3
+[2024-12-01T23:41:50.808929] Deleted topic: TestTopic on peer 011
+[2024-12-01T23:41:50.808929] Sent message to 127.0.0.1:6003: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.808929] Received response from 127.0.0.1:6003: {"status": "success"}
+[2024-12-01T23:41:50.808929] Sent message to 127.0.0.1:6002: {'command': 'delete_topic', 'topic_name': 'TestTopic'}
+[2024-12-01T23:41:50.808929] Received response from 127.0.0.1:6002: {"status": "success"}
+Topic deleted from Peer 000
+Topic deleted from Peer 001
+Topic deleted from Peer 010
+Topic deleted from Peer 011
+Topic deleted from Peer 100
+Topic deleted from Peer 101
+Topic deleted from Peer 110
+Topic deleted from Peer 111
+Start testing dynamic topology configuration...
+Simulate node removal...
+Simulate node rejoin...
+Dynamic topology configuration test completed
+
+Process finished with exit code 0
