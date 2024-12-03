@@ -38,6 +38,8 @@ class PeerNode:
         self.replicas = {}
         self.version_vectors = {}
         self.subscribers = {}  # 存储主题的订阅者
+        self.replicas = {}  # Replicas for fault tolerance
+        self.failed_nodes = []  # Track failed nodes
         self.log = []  # 节点的事件日志
 
         # Locks for concurrency control
@@ -55,17 +57,25 @@ class PeerNode:
         log_entry = f"[{timestamp}] {event}"
         self.log.append(log_entry)
         print(log_entry)
-    
-    def compute_target_peer_id(self, offset):
+
+    def hash_function(self, topic):
         """
         Computes a target peer ID by flipping one bit in the current peer_id.
         This ensures the replica is created on a different peer.
         """
-        target_id_list = list(self.peer_id)
-        bit_to_flip = offset % len(self.peer_id)  # Ensure within bounds
-        target_id_list[bit_to_flip] = '1' if target_id_list[bit_to_flip] == '0' else '0'
-        return "".join(target_id_list)
-    
+        hash_val = int(
+            hashlib.sha256(topic.encode()).hexdigest(), 16
+        )  # 主题名——>对应的目标节点
+        responsible_peer = (
+            hash_val % self.total_peers
+        )  # 使用 SHA-256 对主题名称进行哈希，并根据节点总数取模
+        self.log_event(
+            f"Computed hash for topic '{topic}' -> responsible peer {responsible_peer}"
+        )
+        return bin(responsible_peer)[2:].zfill(len(self.peer_id))  # 返回目标节点id
+
+    # 生成当前节点的邻居列表（基于超立方体拓扑）
+    # 通过逐个位翻转节点的二进制标识符计算邻居节点
     def compute_neighbors(self):
         # # Generate neighbors by flipping each bit of the peer ID to create the hypercube topology.
         # neighbors = []
@@ -262,6 +272,7 @@ class PeerNode:
 
     # 将目标节点负责的主题复制给它（适用于节点重新上线）
     async def replicate_topics(self, target_node):
+        """Replicate topics back to the rejoined node"""
         for topic_name in list(self.topics.keys()):
             responsible_peer = self.hash_function(topic_name)
             if responsible_peer == target_node:  # 如果主题属于该节点
@@ -281,13 +292,15 @@ class PeerNode:
     # 创建主题
     # 如果当前节点是目标节点，则直接创建主题；否则，转发请求到目标节点
     async def create_topic(self, topic_name):
-        """Create a new topic and place replicas."""
+        """Create a new topic and replicate it across nearby nodes"""
         responsible_peer = self.hash_function(topic_name)
         if responsible_peer == self.peer_id:
             if topic_name not in self.topics:
                 self.topics[topic_name] = []  # 创建主题消息列表
                 self.subscribers[topic_name] = []  # 初始化订阅者列表
-                self.replicas[topic_name] = []  # Initialize empty replica list
+                await self.create_replicas(
+                    topic_name
+                )  # Create replicas for fault tolerance
                 self.log_event(f"Created topic: {topic_name} on peer {self.peer_id}")
 
                 await self.create_replicas(topic_name)
@@ -297,6 +310,24 @@ class PeerNode:
             await self.route_request(
                 responsible_peer, {"command": "create_topic", "topic_name": topic_name}
             )
+
+    async def create_replicas(self, topic_name):
+        """Create replicas for the topic on neighboring nodes."""
+        for neighbor in self.neighbors:
+            if neighbor not in self.failed_nodes:
+                self.replicate_topic(topic_name, self.peer_id)
+                self.log_event(
+                    f"Node {self.peer_id} created replica of topic {topic_name} on Node {neighbor}"
+                )
+
+    def replicate_topic(self, topic_name, source_peer_id):
+        """Add a replica of a topic from another node."""
+        if topic_name not in self.replicas:
+            self.replicas[topic_name] = []
+        self.replicas[topic_name].append(source_peer_id)
+        self.log_event(
+            f"Node {self.peer_id} added replica of topic {topic_name} from Node {source_peer_id}"
+        )
 
     # 删除本地存储的主题
     # 如果当前节点不是目标节点，则将请求转发到目标节点。
@@ -324,12 +355,9 @@ class PeerNode:
 
         if responsible_peer == self.peer_id:
             if topic_name in self.topics:
-                version_vector = self.version_vectors.setdefault(topic_name, {})
-                version_vector[self.peer_id] = timestamp
-                self.topics[topic_name].append(message, version_vector.copy())
-
+                self.topics[topic_name].append(message)
                 self.log_event(
-                    f"Published message {message} to topic: {topic_name} on peer {self.peer_id}"
+                    f"Published message to topic: {topic_name} on peer {self.peer_id}"
                 )
                 await self.propagate_message(topic_name, message)
                 await self.replicate_to_replicas(topic_name, message, version_vector)
@@ -344,9 +372,9 @@ class PeerNode:
             await self.route_request(
                 responsible_peer,
                 {
-                    "command": "publish_message",
-                    "topic_name": topic_name,
-                    "message": message,
+                    'command': 'publish_message',
+                    'topic_name': topic_name,
+                    'message': message,
                 },
             )
 
@@ -374,115 +402,99 @@ class PeerNode:
                 {"command": "subscribe_to_topic", "topic_name": topic_name},
             )
 
-    # -------------------------------
-    # Replication & Synchronization
-    # -------------------------------
-    async def create_replicas(self, topic_name):
-        selected_replicas = set()
-        for i in range(self.replication_factor):
-            target_peer_id = self.compute_target_peer_id(i)  # Flip bit to compute
-            replica_peer_id = self.find_next_hop(target_peer_id)
-
-            if replica_peer_id:
-                selected_replicas.add(replica_peer_id)
-                self.replicas[topic_name].append(replica_peer_id)
+    # ----------------------【消息的传递与转发】----------------------
+    # 将消息转发给所有订阅了该主题的节点。
+    async def propagate_message(self, topic_name, message):
+        """
+        Forward the message to all known subscribers of a topic.
+        """
+        for subscriber_id in self.subscribers.get(topic_name, []):
+            if subscriber_id != self.peer_id:
                 await self.route_request(
-                    replica_peer_id,
-                    {"command": "replicate_topic", "topic_name": topic_name},
+                    subscriber_id,
+                    {
+                        "command": "forward_message",
+                        "topic_name": topic_name,
+                        "message": message,
+                    },
                 )
                 self.log_event(
-                    f"Replicated topic '{topic_name}' to peer {replica_peer_id}"
+                    f"Forwarded message for topic '{topic_name}' to neighbor {subscriber_id}"
                 )
 
-    async def replicate_topic(self, topic_name):
-        """Place replicas of the topic on neighboring nodes."""
-        if topic_name not in self.topics:
-            self.topics[topic_name] = []  # Initialize an empty message list
-            self.subscribers[topic_name] = []  # Initialize empty subscriber list
-            self.log_event(f"Replicated topic: {topic_name} on peer {self.peer_id}")
+    # 根据目标节点id转发请求。如果目标节点是自己，则直接处理；否则，选择下一个跳点转发。
+    # async def route_request(self, target_peer_id, payload):
+    #     self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
+    #     if self.peer_id == target_peer_id:
+    #         await self.handle_command(payload)  # Handle locally
+    #     else:
+    #         next_hop = self.find_next_hop(target_peer_id)
+    #         target_address = self.get_peer_address(next_hop)
+    #         await self.send_message(target_address, payload)
+
+    # async def route_request(self, target_peer_id, payload):
+    #     self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
+    #     if self.peer_id == target_peer_id:
+    #         await self.handle_command(payload)  # Handle locally
+    #     else:
+    #         next_hop = self.find_next_hop(target_peer_id)
+    #         if next_hop not in self.active_nodes:
+    #             self.log_event(f"Next hop {next_hop} is not active. Request could not be forwarded.")
+    #             return
+    #         target_address = self.get_peer_address(next_hop)
+    #         await self.send_message(target_address, payload)
+
+    async def route_request(self, target_peer_id, payload):
+        self.log_event(
+            f"Routing request to peer {target_peer_id} with payload: {payload}"
+        )
+        if self.peer_id == target_peer_id:
+            await self.handle_command(payload)  # 处理请求本地命令
         else:
-            self.log_event(
-                f"Topic '{topic_name}' already exists on peer {self.peer_id}"
-            )
-
-        if topic_name in self.replicas:
-            self.log_event(f"Topic '{topic_name}' already marked as a replica.")
-        else:
-            self.replicas[topic_name] = []  # Initialize the replica tracking list
-            # Potential synchronization hook
-            await self.sync_topic(topic_name)
-
-    async def replicate_message(self, topic_name, message, version_vector):
-        """Handle incoming replication request and resolve conflicts."""
-        local_version_vector = self.version_vectors.setdefault(topic_name, {})
-        # Check if the incoming version vector is more recent
-        conflict = False
-        for peer_id, incoming_ts in version_vector.items():
-            local_ts = local_version_vector.get(peer_id, 0)
-            if incoming_ts > local_ts:
-                local_version_vector[peer_id] = incoming_ts
-                conflict = True
-
-        if conflict or topic_name not in self.topics:
-            self.topics.setdefault(topic_name, []).append((message, version_vector))
-            self.log_event(
-                f"Replicated message for topic: {topic_name} on peer {self.peer_id}"
-            )
-
-    async def synchronize_replicas(self, topic_name):
-        """Periodically synchronize replicas to ensure consistency."""
-        async with self.version_vector_lock:
-            version_vector = self.version_vectors.get(topic_name, {})
-        tasks = [
-            self.route_request(
-                replica_peer_id,
-                {
-                    "command": "sync_topic",
-                    "topic_name": topic_name,
-                    "version_vector": version_vector,
-                },
-            )
-            for replica_peer_id in self.replicas.get(topic_name, [])
-        ]
-        if tasks:
-            await asyncio.gather(*tasks)
-
-    async def sync_topic(self, topic_name, version_vector):
-        """Handle synchronization request and resolve conflicts."""
-        local_version_vector = self.version_vectors.get(topic_name, {})
-        for peer_id, incoming_ts in version_vector.items():
-            local_ts = local_version_vector.get(peer_id, 0)
-            if incoming_ts > local_ts:
+            next_hop = self.find_next_hop(target_peer_id)
+            if next_hop not in self.active_nodes:
                 self.log_event(
-                    f"Syncing topic '{topic_name}' from peer {peer_id} with newer data."
+                    f"Next hop {next_hop} is not active. Request could not be forwarded."
                 )
-                await self.request_data(peer_id, topic_name)
+                return {"status": "failed", "reason": "Next hop not active"}
 
-    async def run_sync_loop(self):
-        """Run a periodic synchronization loop."""
-        while True:
-            for topic in self.topics:
-                await self.synchronize_replicas(topic)
-            await asyncio.sleep(10)  # Run sync every 10 seconds
+            target_address = self.get_peer_address(next_hop)
+            response = await self.send_message(target_address, payload)
+            return response  # 返回最终的处理结果
 
-    async def replicate_to_replicas(self, topic_name, message, version_vector):
-        """Send updated data to all replicas."""
-        for replica_peer_id in self.replicas.get(topic_name, []):
-            await self.route_request(
-                replica_peer_id,
-                {
-                    "command": "replicate_message",
-                    "topic_name": topic_name,
-                    "message": message,
-                    "version_vector": version_vector,
-                },
-            )
+    # 找到距离目标节点更近的下一个邻居节点
+    def find_next_hop(self, target_peer_id):
+        """
+        Find the next neighbor in the hypercube that is one bit closer to the target.
+        """
+        for i in range(len(self.peer_id)):
+            if self.peer_id[i] != target_peer_id[i]:  # Find the first differing bit
+                next_hop = list(self.peer_id)
+                next_hop[i] = target_peer_id[i]  # Flip the bit to move closer
+                self.log_event(
+                    f"Determining next hop: peer {self.peer_id} -> {''.join(next_hop)}"
+                )
+                return "".join(next_hop)
 
-    async def send_missing_data(self, topic_name):
-        """Send the latest data for the topic to the requesting peer."""
-        if topic_name in self.topics:
-            for message, version_vector in self.topics[topic_name]:
-                await self.replicate_message(topic_name, message, version_vector)
+    async def forward_message(self, neighbor_id, topic_name, message):
+        target_peer = self.get_peer_address(neighbor_id)
+        payload = {
+            "command": "forward_message",
+            "topic_name": topic_name,
+            "message": message,
+        }
+        await self.send_message(target_peer, payload)
+
+    # async def forward_request(self, responsible_peer, payload):
+    #     """
+    #     Forwards the request to the peer responsible for the topic using DHT.
+    #     """
+    #     target_peer = self.get_peer_address(responsible_peer)
+    #     await self.send_message(target_peer, payload)
+
+    def get_peer_address(self, peer_id):
+        # Placeholder: Define how to resolve a peer_id to IP:Port
+        return f"127.0.0.1:{6000 + int(peer_id, 2)}"
 
     # ----------------------【网络通信】----------------------
     # 使用异步I/O发送消息到指定的目标节点
@@ -504,35 +516,6 @@ class PeerNode:
             self.log_event(f"Failed to send message {message} to {target_peer}: {e}")
             return None
 
-    async def request_data(self, peer_id, topic_name):
-        """Request missing data from a replica peer."""
-        await self.route_request(
-            peer_id, {"command": "send_missing_data", "topic_name": topic_name}
-        )
-
-    # -------------------------------
-    # Messaging & Command Handling
-    # -------------------------------
-    # ----------------------【消息的传递与转发】----------------------
-    # 将消息转发给所有订阅了该主题的节点。
-    async def propagate_message(self, topic_name, message):
-        """
-        Forward the message to all known subscribers of a topic.
-        """
-        for subscriber_id in self.subscribers.get(topic_name, []):
-            if subscriber_id != self.peer_id:
-                await self.route_request(
-                    subscriber_id,
-                    {
-                        "command": "forward_message",
-                        "topic_name": topic_name,
-                        "message": message,
-                    },
-                )
-                self.log_event(
-                    f"Forwarded message for topic '{topic_name}' to neighbor {subscriber_id}"
-                )
-
     async def handle_command(self, command):
         """
         Process the command locally if received at the correct peer.
@@ -547,19 +530,11 @@ class PeerNode:
         elif command["command"] == "subscribe_to_topic":
             await self.subscribe_to_topic(command["topic_name"])
         # 【新加】支持新的 replicate_topic 命令
-        elif command == "replicate_topic":
+        elif command["command"] == "replicate_topic":
             topic_name = command["topic_name"]
-            if topic_name not in self.topics:
-                self.topics[topic_name] = []
-                self.log_event(f"Replicated topic: {topic_name} on peer {self.peer_id}")
-            await self.replicate_topic(command["topic_name"])
-        elif command == "sync_topic":
-            await self.sync_topic(command["topic_name"], command["version_vector"])
-        elif command == "forward_message":
-            await self.propagate_message(
-                command["topic_name"],
-                command["message"],
-                command.get("version_vector", {}),
+            self.topics[topic_name] = command["messages"]
+            self.log_event(
+                f"Replicated topic '{topic_name}' on rejoined node {self.peer_id}"
             )
         else:
             self.log_event(f"Unknown command: {command}")
@@ -568,7 +543,9 @@ class PeerNode:
 
     async def handle_client(self, reader, writer):
         try:
-            data = await reader.read(100)
+            data = await reader.read(1000)
+            print(f"Received data: {data}")            
+            
             command = json.loads(data.decode())
             self.log_event(f"Received client request: {command}")
             await self.handle_command(command)
@@ -578,7 +555,14 @@ class PeerNode:
             writer.write(json.dumps(response).encode())
             await writer.drain()
         except Exception as e:
+            print(json.dumps(command))
             self.log_event(f"Error handling client request: {e}")
         finally:
             writer.close()
             await writer.wait_closed()
+
+    async def run_peer(self):
+        server = await asyncio.start_server(self.handle_client, self.ip, self.port)
+        self.log_event(f"Peer {self.peer_id} started at {self.ip}:{self.port}")
+        async with server:
+            await server.serve_forever()

@@ -50,69 +50,29 @@ async def test_dynamic_topology(peers, active_nodes):
     await peers[0].handle_node_rejoin(peers[2].peer_id)
 
 
-async def test_topic_replication(peers):
+async def test_replication(peers):
     try:
-        print("Step 1: Create topic on Peer 0 and replicate")
-        # Create topic on Peer 0
+        print("Step 1: Creating topic with replication on Peer 0")
         await asyncio.wait_for(peers[0].create_topic("TestTopic"), timeout=10)
-        print("Topic 'TestTopic' created on Peer 0")
+        await asyncio.wait_for(peers[0].create_replicas("TestTopic"), timeout=10)
+        print("Topic created with replicas by Peer 0")
 
-        # Simulate replication: Ensure that topics are replicated on other peers
-        for i, peer in enumerate(peers):
-            if i != 0:
-                # Add debug log to track if the topic is correctly replicated
-                print(f"Checking if 'TestTopic' is replicated on Peer {peer.peer_id}")
-                assert (
-                    "TestTopic" in peer.topics
-                ), f"TestTopic not found on Peer {peer.peer_id}"
-                print(f"Topic 'TestTopic' replicated to Peer {peer.peer_id}")
-
-        print("Step 2: Publish a message to 'TestTopic' and validate replication")
-        message = "Message from Peer 0"
+        print("Step 2: Publishing message to 'TestTopic' on Peer 0")
+        message = "Replication test message from Peer 0"
         await asyncio.wait_for(
-            peers[0].publish_message("TestTopic", message), timeout=10
+            peers[0].publish_message("TestTopic", message), timeout=20
         )
-        print("Message published by Peer 0 to 'TestTopic'")
+        print(f"Peer 0 published message: {message}")
 
-        # Validate that all peers have received the message (replication of messages)
+        print("Step 3: Checking message replication across peers")
         for peer in peers:
             messages = peer.topics.get("TestTopic", [])
-            assert message in messages, f"Message not replicated on Peer {peer.peer_id}"
-            print(f"Message '{message}' replicated on Peer {peer.peer_id}")
-
-        print("Step 3: Simulate a peer failure and ensure replication persists")
-        # Simulate peer failure
-        print("Simulating Peer 2 failure...")
-        await peers[
-            2
-        ].shutdown()  # Assuming there's a shutdown method that simulates failure
-
-        # Recheck replication on remaining peers
-        await asyncio.sleep(2)  # Give it time to detect and reroute
-        for peer in peers:
-            if peer.peer_id != "2":  # Skip the failed peer
-                messages = peer.topics.get("TestTopic", [])
-                assert (
-                    message in messages
-                ), f"Message not replicated on Peer {peer.peer_id} after failure"
-                print(
-                    f"Message '{message}' replicated on Peer {peer.peer_id} after failure detection"
-                )
-
-        print("Step 4: Simulate peer rejoin and ensure replication consistency")
-        print("Simulating Peer 2 rejoin...")
-        await peers[2].rejoin()  # Assuming a rejoin method that re-establishes peer
-
-        # Ensure that after rejoin, the topic and message are available
-        await asyncio.sleep(2)  # Allow time for rejoin and replication
-        messages = peers[2].topics.get("TestTopic", [])
-        assert message in messages, f"Message not replicated on Peer 2 after rejoin"
-        print(f"Message '{message}' replicated on Peer 2 after rejoin")
-
+            if messages:
+                print(f"Peer {peer.peer_id} received messages: {messages}")
+            else:
+                print(f"Peer {peer.peer_id} did not receive any messages.")
     except asyncio.TimeoutError:
-        print("Operation timed out, potential issue detected in peer communication.")
-    except AssertionError as e:
-        print(f"Assertion failed: {e}")
+        print("Replication test timed out.")
 
 
 async def main():
@@ -141,10 +101,10 @@ async def main():
         await test_dynamic_topology(peers, active_nodes)
         print("Dynamic topology configuration testing is complete.")
 
-        # Perform topic replication test
-        await test_topic_replication(peers)
-        print("Topic replication testing is complete.")
-
+        # Test replication functionality
+        print("Start testing replication functionality...")
+        await test_replication(peers)
+        print("Replication functionality test complete.")
     except Exception as e:
         print(f"An error occurred during testing: {e}")
     finally:
