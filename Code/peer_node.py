@@ -77,21 +77,7 @@ class PeerNode:
     # 生成当前节点的邻居列表（基于超立方体拓扑）
     # 通过逐个位翻转节点的二进制标识符计算邻居节点
     def compute_neighbors(self):
-        # # Generate neighbors by flipping each bit of the peer ID to create the hypercube topology.
-        # neighbors = []
-        # for i in range(len(self.peer_id)):
-        #     neighbor = list(self.peer_id)
-        #     neighbor[i] = "1" if neighbor[i] == "0" else "0"  # Flip the i-th bit
-        #     neighbors.append("".join(neighbor))
-        # return neighbors
         """Set up the neighbors for this peer based on hypercube logic."""
-        # neighbors = []
-        # # Hypercube logic: Each peer connects to others by flipping one bit at a time in the binary representation of the peer id
-        # for peer in peers:
-        #     if peer.peer_id != self.peer_id and self.is_neighbor(peer.peer_id):
-        #         neighbors.append(peer)
-        # self.neighbors = neighbors
-        # return neighbors
         neighbors = []
         for i in range(len(self.peer_id)):
             neighbor = list(self.peer_id)
@@ -120,30 +106,6 @@ class PeerNode:
         self.active_peers[new_peer_id] = (ip, port)
         self.log_event(f"New peer {new_peer_id} joined the network at {ip}:{port}")
         await self.rebalance_topics(new_peer_id)
-
-    # async def route_request(self, target_peer_id, payload):
-    #     self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
-    #     if target_peer_id in self.failed_peers:
-    #         self.log_event(
-    #             f"Peer {target_peer_id} is marked as failed. Rerouting to a replica."
-    #         )
-    #         for replica_peer_id in self.replicas.get(payload.get("topic_name"), []):
-    #             if replica_peer_id not in self.failed_peers:
-    #                 target_peer_id = replica_peer_id
-    #                 break
-
-    #     next_hop = self.find_next_hop(target_peer_id)
-    #     if next_hop:
-    #         target_address = self.get_peer_address(next_hop)
-    #         await self.send_message(target_address, payload)
-    #     self.log_event(
-    #         f"Routing request to peer {target_peer_id} with payload: {payload}"
-    #     )
-    #     if self.peer_id == target_peer_id:
-    #         await self.handle_command(payload)  # Handle locally
-    #     else:
-    #         target_address = self.get_peer_address(next_hop)
-    #         await self.send_message(target_address, payload)
 
     async def route_request(self, target_peer_id, payload):
         self.log_event(
@@ -360,7 +322,6 @@ class PeerNode:
                     f"Published message to topic: {topic_name} on peer {self.peer_id}"
                 )
                 await self.propagate_message(topic_name, message)
-                await self.replicate_to_replicas(topic_name, message, version_vector)
             else:
                 self.log_event(
                     f"Attempted to publish to non-existent topic: {topic_name}"
@@ -422,28 +383,6 @@ class PeerNode:
                     f"Forwarded message for topic '{topic_name}' to neighbor {subscriber_id}"
                 )
 
-    # 根据目标节点id转发请求。如果目标节点是自己，则直接处理；否则，选择下一个跳点转发。
-    # async def route_request(self, target_peer_id, payload):
-    #     self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
-    #     if self.peer_id == target_peer_id:
-    #         await self.handle_command(payload)  # Handle locally
-    #     else:
-    #         next_hop = self.find_next_hop(target_peer_id)
-    #         target_address = self.get_peer_address(next_hop)
-    #         await self.send_message(target_address, payload)
-
-    # async def route_request(self, target_peer_id, payload):
-    #     self.log_event(f"Routing request to peer {target_peer_id} with payload: {payload}")
-    #     if self.peer_id == target_peer_id:
-    #         await self.handle_command(payload)  # Handle locally
-    #     else:
-    #         next_hop = self.find_next_hop(target_peer_id)
-    #         if next_hop not in self.active_nodes:
-    #             self.log_event(f"Next hop {next_hop} is not active. Request could not be forwarded.")
-    #             return
-    #         target_address = self.get_peer_address(next_hop)
-    #         await self.send_message(target_address, payload)
-
     async def route_request(self, target_peer_id, payload):
         self.log_event(
             f"Routing request to peer {target_peer_id} with payload: {payload}"
@@ -484,13 +423,6 @@ class PeerNode:
             "message": message,
         }
         await self.send_message(target_peer, payload)
-
-    # async def forward_request(self, responsible_peer, payload):
-    #     """
-    #     Forwards the request to the peer responsible for the topic using DHT.
-    #     """
-    #     target_peer = self.get_peer_address(responsible_peer)
-    #     await self.send_message(target_peer, payload)
 
     def get_peer_address(self, peer_id):
         # Placeholder: Define how to resolve a peer_id to IP:Port
@@ -544,7 +476,6 @@ class PeerNode:
     async def handle_client(self, reader, writer):
         try:
             data = await reader.read(1000)
-            print(f"Received data: {data}")            
             
             command = json.loads(data.decode())
             self.log_event(f"Received client request: {command}")
