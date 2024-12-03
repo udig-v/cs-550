@@ -41,11 +41,8 @@ class PeerNode:
         self.replicas = {}  # Replicas for fault tolerance
         self.failed_nodes = []  # Track failed nodes
         self.log = []  # 节点的事件日志
-
-        # Locks for concurrency control
-        self.peer_lock = asyncio.Lock()
-        self.topic_lock = asyncio.Lock()
-        self.version_vector_lock = asyncio.Lock()
+        
+        asyncio.create_task(self.detect_node_status())  # 定期检测邻居节点的在线状态
 
         self.log_event(f"Peer {self.peer_id} initialized at {self.ip}:{self.port}")
 
@@ -168,10 +165,14 @@ class PeerNode:
 
     # 定期检测邻居节点的在线状态，并更新活跃节点列表。
     async def detect_node_status(self):
+        """Periodically check if neighbors are online and update active nodes."""
         while True:
             for neighbor in list(self.neighbors):
                 if not await self.ping_node(neighbor):
-                    self.active_nodes.remove(neighbor)
+                    if neighbor not in self.failed_nodes:
+                        self.failed_nodes.append(neighbor)
+                    if neighbor in self.active_nodes:
+                        self.active_nodes.remove(neighbor)
                     self.log_event(f"Neighbor {neighbor} is offline.")
                 else:
                     if neighbor not in self.active_nodes:
@@ -186,12 +187,13 @@ class PeerNode:
 
     #  检查指定节点是否在线
     async def ping_node(self, peer_id):
+        """Check if a specific node is reachable."""
         target_peer = self.get_peer_address(peer_id)
         try:
             reader, writer = await asyncio.open_connection(
                 target_peer.split(":")[0], int(target_peer.split(":")[1])
             )
-            writer.write(json.dumps({"command": "ping"}).encode())
+            writer.write(json.dumps({"command": "ping", "peer_id": peer_id}).encode())
             await writer.drain()
             writer.close()
             return True
@@ -204,7 +206,9 @@ class PeerNode:
 
     #  当节点重新加入时的处理逻辑
     async def handle_node_rejoin(self, rejoined_node):
-        self.active_nodes.append(rejoined_node)  # 将节点重新加入活跃列表
+        """Handle node rejoining by restoring topics that it was responsible for."""
+        if rejoined_node not in self.active_nodes:
+            self.active_nodes.append(rejoined_node)  # 将节点重新加入活跃列表
         self.neighbors = self.compute_neighbors()  # 更新邻居列表
         await self.replicate_topics(rejoined_node)  # 将该节点负责的主题复制回去
 
@@ -256,6 +260,8 @@ class PeerNode:
     async def create_topic(self, topic_name):
         """Create a new topic and replicate it across nearby nodes"""
         responsible_peer = self.hash_function(topic_name)
+        print(f"Computed hash for topic '{topic_name}' -> responsible peer {responsible_peer}")
+        
         if responsible_peer == self.peer_id:
             if topic_name not in self.topics:
                 self.topics[topic_name] = []  # 创建主题消息列表
@@ -452,7 +458,7 @@ class PeerNode:
         """
         Process the command locally if received at the correct peer.
         """
-        self.log_event(f"Processing command: {command}")
+        # self.log_event(f"Processing command: {command}")
         if command["command"] == "create_topic":
             await self.create_topic(command["topic_name"])
         elif command["command"] == "delete_topic":
@@ -461,13 +467,15 @@ class PeerNode:
             await self.publish_message(command["topic_name"], command["message"])
         elif command["command"] == "subscribe_to_topic":
             await self.subscribe_to_topic(command["topic_name"])
+        elif command["command"] == "ping":
+            await self.ping_node(command["peer_id"])
         # 【新加】支持新的 replicate_topic 命令
         elif command["command"] == "replicate_topic":
             topic_name = command["topic_name"]
             self.topics[topic_name] = command["messages"]
-            self.log_event(
-                f"Replicated topic '{topic_name}' on rejoined node {self.peer_id}"
-            )
+            # self.log_event(
+            #     f"Replicated topic '{topic_name}' on rejoined node {self.peer_id}"
+            # )
         else:
             self.log_event(f"Unknown command: {command}")
 
@@ -478,7 +486,7 @@ class PeerNode:
             data = await reader.read(1000)
             
             command = json.loads(data.decode())
-            self.log_event(f"Received client request: {command}")
+            # self.log_event(f"Received client request: {command}")
             await self.handle_command(command)
 
             # 向客户端发送响应，确认命令已被处理
