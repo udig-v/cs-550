@@ -1,6 +1,7 @@
 import asyncio
 from peer_node import PeerNode
 
+
 async def test_peer_operations(peers):
     try:
         print("Step 1: Creating topic on Peer 0")
@@ -15,7 +16,9 @@ async def test_peer_operations(peers):
         print("Step 3: Multiple peers publishing to the topic")
         for peer in peers:
             message = f"Message from Peer {peer.peer_id}"
-            await asyncio.wait_for(peer.publish_message("TestTopic", message), timeout=10)
+            await asyncio.wait_for(
+                peer.publish_message("TestTopic", message), timeout=10
+            )
             print(f"Peer {peer.peer_id} published message to 'TestTopic'")
 
         print("Step 4: Peers retrieving messages from the topic")
@@ -34,6 +37,7 @@ async def test_peer_operations(peers):
     except asyncio.TimeoutError:
         print("Operation timed out, potential issue detected in peer communication.")
 
+
 async def test_dynamic_topology(peers, active_nodes):
     print("Simulate node removal...")
     active_nodes.remove(peers[2].peer_id)  # 模拟节点 2 离线
@@ -46,6 +50,31 @@ async def test_dynamic_topology(peers, active_nodes):
     await peers[0].handle_node_rejoin(peers[2].peer_id)
 
 
+async def test_replication(peers):
+    try:
+        print("Step 1: Creating topic with replication on Peer 0")
+        await asyncio.wait_for(peers[0].create_topic("TestTopic"), timeout=10)
+        await asyncio.wait_for(peers[0].create_replicas("TestTopic"), timeout=10)
+        print("Topic created with replicas by Peer 0")
+
+        print("Step 2: Publishing message to 'TestTopic' on Peer 0")
+        message = "Replication test message from Peer 0"
+        await asyncio.wait_for(
+            peers[0].publish_message("TestTopic", message), timeout=20
+        )
+        print(f"Peer 0 published message: {message}")
+
+        print("Step 3: Checking message replication across peers")
+        for peer in peers:
+            messages = peer.topics.get("TestTopic", [])
+            if messages:
+                print(f"Peer {peer.peer_id} received messages: {messages}")
+            else:
+                print(f"Peer {peer.peer_id} did not receive any messages.")
+    except asyncio.TimeoutError:
+        print("Replication test timed out.")
+
+
 async def main():
     total_peers = 8
     active_nodes = []
@@ -54,7 +83,9 @@ async def main():
     # 初始化节点
     for peer_id in range(total_peers):
         binary_id = bin(peer_id)[2:].zfill(3)
-        peer = PeerNode(binary_id, '127.0.0.1', 6000 + peer_id, total_peers, active_nodes)
+        peer = PeerNode(
+            binary_id, "127.0.0.1", 6000 + peer_id, total_peers, active_nodes
+        )
         peers.append(peer)
         active_nodes.append(binary_id)
 
@@ -69,6 +100,11 @@ async def main():
         print("Start testing dynamic topology configuration...")
         await test_dynamic_topology(peers, active_nodes)
         print("Dynamic topology configuration testing is complete.")
+
+        # Test replication functionality
+        print("Start testing replication functionality...")
+        await test_replication(peers)
+        print("Replication functionality test complete.")
     except Exception as e:
         print(f"An error occurred during testing: {e}")
     finally:
@@ -77,9 +113,6 @@ async def main():
             task.cancel()
         await asyncio.gather(*server_tasks, return_exceptions=True)
 
+
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
