@@ -1,14 +1,15 @@
 # Decentralized P2P System with DHT and Hypercube Topology
 
 ## Overview
-This project implements a decentralized peer-to-peer (P2P) system using a Distributed Hash Table (DHT) and hypercube topology. The system enables efficient topic-based publish/subscribe interactions across multiple peer nodes, where each node can create, delete, publish, and subscribe to topics. The project also includes mechanisms for request forwarding, performance benchmarking, and latency/throughput evaluation.
+The goal of this project is to enhance a distributed peer-to-peer (P2P) system based on the previous assignment (PA3). This system achieve mainly two functions: (1) Replicated Topics (Performance optimization and Fault tolerance); (2) Dynamic Topology Configuration. Specifically, this system implements the core functions of each node in the decentralized P2P system, including topic management, message routing and forwarding, network communication, and event logging. It is also responsible for coordination and distributed operations between nodes.
 
 ## Features
 - **Distributed Hash Table (DHT):** Ensures efficient topic distribution across nodes.
 - **Hypercube Topology:** Allows optimized routing and request forwarding.
 - **Publish/Subscribe API:** Supports topic creation, deletion, publishing messages, and subscribing to topics.
 - **Benchmarking:** Evaluates latency and throughput for various APIs.
-
+- **Replicated Topics:** (1) Deciding When and Where to Place Replicas: This requires an algorithm to determine whether replication is beneficial and where the replicas should reside, potentially based on client proximity or access frequency. (2) Consistency Model Selection: Replicated data introduces synchronization overhead. The consistency model (e.g., eventual consistency, strict consistency) impacts both system performance and correctness. A balance between latency and overhead must be achieved.
+- **Fault Tolerance:** (1) Failure Detection: Nodes must detect failed peers and avoid forwarding requests to them. (2) Forwarding to Replicas: Requests intended for failed nodes should be routed to nodes hosting replicas of the target topics.
 ## Requirements
 To install the required dependencies, use the `requirements.txt` file provided. Run the following command:
 ```bash
@@ -44,18 +45,22 @@ python test_apis.py
 This test will:
 - Validate each API on each node.
 - Ensure correct request forwarding across nodes.
+- To achieve these two functions: replicated topics for performance optimization and fault tolerance; dynamic topology configuration (add & removal of Hypercube nodes).
 
 ## Experiments
 Experiments are designed to test various aspects of the system:
 
 1. Hash Function: Assess time complexity, distribution of topics, and runtime cost.
 2. Request Forwarding: Verify functionality, measure average response time, and assess maximum throughput.
+3. Fault Tolerance: The assumption that all nodes operate reliably no longer holds. The system must handle node failures with Failure Detection and Forwarding to Replicas.
+4. The system must support runtime addition and removal of nodes in a hypercube topology. The challenges include Handling Node Unavailability and Node Recovery.
 
 ## File Descriptions
-- peer_node.py: Main file for initializing and running individual peer nodes.
+- peer_node.py: Main file for initializing and running individual peer nodes. It implements the core functions of each node in the decentralized P2P system, including topic management, message routing and forwarding, network communication, and event logging. It is also responsible for coordination and distributed operations between nodes.
 - benchmark_apis.py: Script for benchmarking each API, measuring latency and throughput.
 - test_apis.py: Script for functional testing of each API and request forwarding.
 - requirements.txt: Contains all necessary Python packages.
+- test_hash_function.py: Implementing detailed distributed hashing algorithms.
 
 ## Conclusion
-This project enables efficient, scalable, and decentralized P2P communication, with reliable topic-based interactions and optimized message routing in a hypercube network. Use the benchmarking results to further tune performance and ensure an even distribution of topics across nodes.
+This project extends a P2P system with advanced features to support replication, fault tolerance, and dynamic topology configuration. These enhancements aim to improve system reliability, performance, and adaptability in dynamic environments. The implementation must consider trade-offs between performance, consistency, and overhead while meeting the additional requirements of concurrency and scalability.
